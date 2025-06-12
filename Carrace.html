@@ -1,0 +1,142 @@
+// Enums/GameState.cs
+
+public enum GameState
+{
+    START_MENU,
+    PLAYING,
+    LEVEL_COMPLETE,
+    GAME_OVER,
+    GAME_WON
+}
+
+// Scripts/GameManager.cs
+
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+public class GameManager : MonoBehaviour
+{
+    public static GameManager Instance;
+    public GameState currentGameState = GameState.START_MENU;
+    public int currentLevel = 1;
+
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+
+    private void Update()
+    {
+        if (currentGameState == GameState.PLAYING && PlayerCrossedFinishLine())
+        {
+            LevelComplete();
+        }
+    }
+
+    private bool PlayerCrossedFinishLine()
+    {
+        // Placeholder for actual finish line detection logic
+        return false;
+    }
+
+    public void LevelComplete()
+    {
+        currentGameState = GameState.LEVEL_COMPLETE;
+        UIManager.Instance.ShowLevelComplete();
+    }
+
+    public void LoadNextLevel()
+    {
+        currentLevel++;
+        if (currentLevel > 10)
+        {
+            currentGameState = GameState.GAME_WON;
+            UIManager.Instance.ShowGameWon();
+        }
+        else
+        {
+            SceneManager.LoadScene("Level" + currentLevel);
+            currentGameState = GameState.PLAYING;
+        }
+    }
+}
+
+// Scripts/CarController.cs
+
+using UnityEngine;
+
+[RequireComponent(typeof(Rigidbody2D))]
+public class CarController : MonoBehaviour
+{
+    public float acceleration = 10f;
+    public float steering = 2f;
+    public float maxSpeed = 20f;
+    public float friction = 0.98f;
+
+    private Rigidbody2D rb;
+
+    private void Start()
+    {
+        rb = GetComponent<Rigidbody2D>();
+    }
+
+    private void FixedUpdate()
+    {
+        float moveInput = Input.GetAxis("Vertical");
+        float turnInput = Input.GetAxis("Horizontal");
+
+        rb.velocity += (Vector2)transform.up * moveInput * acceleration * Time.fixedDeltaTime;
+        rb.velocity = Vector2.ClampMagnitude(rb.velocity, maxSpeed);
+        rb.velocity *= friction;
+
+        transform.Rotate(0f, 0f, -turnInput * steering);
+    }
+}
+
+// Scripts/UIManager.cs
+
+using UnityEngine;
+
+public class UIManager : MonoBehaviour
+{
+    public static UIManager Instance;
+    public GameObject levelCompletePanel;
+    public GameObject gameWonPanel;
+
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+
+    public void ShowLevelComplete()
+    {
+        if (levelCompletePanel != null)
+            levelCompletePanel.SetActive(true);
+    }
+
+    public void ShowGameWon()
+    {
+        if (gameWonPanel != null)
+            gameWonPanel.SetActive(true);
+    }
+
+    public void OnNextLevelButton()
+    {
+        GameManager.Instance.LoadNextLevel();
+    }
+}
